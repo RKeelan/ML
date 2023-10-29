@@ -14,6 +14,8 @@ def main(args):
     unet_parser = models.add_parser("unet", help="Train a UNet")
     unet_parser.set_defaults(train=train_unet)
 
+    char_gpt_parser = models.add_parser("char-gpt", help="Train a Character-level GPT")
+    char_gpt_parser.set_defaults(train=train_char_gpt)
     
     args = parser.parse_args()
     if not hasattr(args, "train"):
