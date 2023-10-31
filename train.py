@@ -4,6 +4,7 @@ import sys
 
 import torch
 
+from Diffusion.diffusion import train_diffusion
 from GPT.char_gpt import train_char_gpt
 from UNet.unet import train_unet
 
@@ -16,6 +17,9 @@ def main(args):
 
     char_gpt_parser = models.add_parser("char-gpt", help="Train a Character-level GPT")
     char_gpt_parser.set_defaults(train=train_char_gpt)
+
+    diff_parser = models.add_parser("diff", help="Train a ddpm diffusion network")
+    diff_parser.set_defaults(train=train_diffusion)
     
     args = parser.parse_args()
     if not hasattr(args, "train"):
