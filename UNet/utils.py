@@ -2,12 +2,11 @@ from functools import partial
 import logging
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
+import numpy as np
+from PIL import Image
 from os import listdir
 from os.path import splitext, isfile, join
 from pathlib import Path
-
-import numpy as np
-from PIL import Image
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -74,7 +73,7 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
 
 
 class BasicDataset(Dataset):
-    def __init__(self, images_dir: str, mask_dir: str, scale: float = 1.0, mask_suffix: str = ''):
+    def __init__(self, images_dir: str, mask_dir: str, scale: float = 1.0, mask_suffix: str = '', size: int = None):
         self.images_dir = Path(images_dir)
         self.mask_dir = Path(mask_dir)
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
@@ -84,6 +83,8 @@ class BasicDataset(Dataset):
         self.ids = [splitext(file)[0] for file in listdir(images_dir) if isfile(join(images_dir, file)) and not file.startswith('.')]
         if not self.ids:
             raise RuntimeError(f'No input file found in {images_dir}, make sure you put your images there')
+        if size:
+            self.ids = self.ids[:size]
 
         logging.info(f'Creating dataset with {len(self.ids)} examples')
         logging.info('Scanning mask files to determine unique values')
@@ -94,6 +95,8 @@ class BasicDataset(Dataset):
             ))
 
         self.mask_values = list(sorted(np.unique(np.concatenate(unique), axis=0).tolist()))
+        if size:
+            self.mask_values = self.mask_values[:size]
         logging.info(f'Unique mask values: {self.mask_values}')
 
     def __len__(self):
@@ -151,5 +154,5 @@ class BasicDataset(Dataset):
 
 
 class CarvanaDataset(BasicDataset):
-    def __init__(self, images_dir, mask_dir, scale=1):
-        super().__init__(images_dir, mask_dir, scale, mask_suffix='_mask')
+    def __init__(self, images_dir, mask_dir, scale=1, size: int = None):
+        super().__init__(images_dir, mask_dir, scale, mask_suffix='_mask', size=size)

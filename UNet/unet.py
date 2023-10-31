@@ -329,9 +329,9 @@ def train_unet(device: torch.device, args):
     extra_config = dict(img_scale=img_scale)
 
     try:
-        dataset = CarvanaDataset(IMAGE_DIR, MASK_DIR, img_scale)
+        dataset = CarvanaDataset(IMAGE_DIR, MASK_DIR, img_scale, size=50)
     except (AssertionError, RuntimeError, IndexError):
-        dataset = BasicDataset(MASK_DIR, IMAGE_DIR, img_scale)
+        dataset = BasicDataset(MASK_DIR, IMAGE_DIR, img_scale, size=50)
 
     try:
         train_model(
