@@ -22,8 +22,8 @@ from UNet.utils import (
     plot_img_and_mask
 )
 
-IMAGE_DIR = Path('./data/imgs/')
-MASK_DIR = Path('./data/masks/')
+IMAGE_DIR = Path('./data/cars/imgs/')
+MASK_DIR = Path('./data/cars/masks/')
 CHECKPOINT_DIR = Path('./checkpoints/')
 
 
