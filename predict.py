@@ -4,12 +4,17 @@ import sys
 
 import torch
 
+from LeNet.lenet import lenet_predict
 from UNet.unet import unet_predict
 
 
 def main(args):
     parser = argparse.ArgumentParser(description="Prdict using a model")
     models = parser.add_subparsers(dest="model_type")
+
+    lenet_parser = models.add_parser("lenet", help="Predict with LeNet")
+    lenet_parser.add_argument("--input", "-i", metavar="INPUT", help="Input directory", required=True)
+    lenet_parser.set_defaults(predict=lenet_predict)
 
     unet_parser = models.add_parser("unet", help="Predict with UNet")
     unet_parser.add_argument("--model_path", "-m", metavar="FILE", help="Path to model", required=True)
