@@ -15,6 +15,7 @@ def main(args):
     diffusion_cmd.set_defaults(explore=explore_diffusion)
 
     d2l_cmd = commands.add_parser("d2l", help="Explore d2l data")
+    d2l_cmd.add_argument("--dataset", "-ds", required=False)
     d2l_cmd.set_defaults(explore=explore_d2l)
     
     args = parser.parse_args()
