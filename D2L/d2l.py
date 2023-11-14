@@ -1,11 +1,11 @@
 from d2l import torch as d2l
 import torch
 import matplotlib.pyplot as plt
-# import mlp_toolkits.axes_grid1 as ImageGrid
 
 import torch
 import torchvision
 import torchvision.transforms as transforms
+from torchvision.transforms import Compose, ToTensor, RandomHorizontalFlip, RandomVerticalFlip, ColorJitter, RandomResizedCrop
 from torch.utils.data import TensorDataset
 
 def img_show(img):
@@ -50,18 +50,30 @@ def images():
     # img_show(torchvision.utils.make_grid(images, nrow=2))
     print(tiny_image_dataset.classes)
 
-class SillyDataset(torch.utils.data.Dataset):
-    def __init__(self, shape=(224, 224)):
-        super(SillyDataset, self).__init__()
-        self.shape = shape
+def plot_transformed_cifar(transformation):
+    # Function to convert tensors into an appropriate numpy array to plot
+    def imshow(img):
+        out = img.permute(1, 2, 0).numpy()
+        plt.imshow(out); plt.show()
 
-    def __getitem__(self, index):
-        # Return a random tensor of requested shape
-        return torch.rand(*self.shape)
+    train_data = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transformation)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=False, num_workers=2, drop_last=True)
 
-    def __len__(self):
-        # This is how the dataloader knows to stop vending at the end of an epoch
-        return 1000
+    # Plot the first batch from the dataloader
+    fig = plt.figure(figsize=(12., 12.))
+    data_iter = iter(train_loader)
+    images, _ = next(data_iter)
+    imshow(torchvision.utils.make_grid(images, nrow=8))
+
+def cifar10():
+    transformations = Compose([
+        RandomHorizontalFlip(p=0.5),
+        RandomVerticalFlip(p=0.5),
+        ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
+        RandomResizedCrop((32,32), scale=(0.5, 1), ratio=(0.5,2)),
+        ToTensor()
+    ])
+    plot_transformed_cifar(transformations)
 
 def explore_d2l(args):
     if args.dataset is not None:
@@ -69,14 +81,8 @@ def explore_d2l(args):
             fmnist()
         elif args.dataset == "imgs":
             images()
-        elif args.dataset == "silly":
-            silly_dataset = SillyDataset(shape=(10,10))
-            silly_dataloader = torch.utils.data.DataLoader(silly_dataset, batch_size=32)
-            
-            for data in silly_dataloader:
-                print(data.shape)
-                print(data)
-                break
+        elif args.dataset == "cifar10":
+            cifar10()
         else:
             print(f"Unrecognized dataset: {args.dataset}")
         return
