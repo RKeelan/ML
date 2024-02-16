@@ -1,4 +1,7 @@
+import argparse
 import logging
+import sys
+
 import numpy as np
 from pathlib import Path
 import torch
@@ -190,3 +193,27 @@ def train_diffusion(device, args):
             if epoch % 1 == 0 and step == 0:
                 logging.info(f"Epoch: {epoch}, step: {step}, loss: {loss.item():.4f}")
                 sample_plot_image(model, device)
+
+def main(args):
+    parser = argparse.ArgumentParser(description="Diffusion model")
+    commands = parser.add_subparsers(dest="cmd")
+    
+    diffusion_cmd = commands.add_parser("Explore", help="Explore diffusion data")
+    diffusion_cmd.add_argument("--show_images", "-i", action="store_true", help="Show Images")
+    diffusion_cmd.add_argument("--noise_image", "-n", action="store_true", help="Simulate forward diffusion")
+    diffusion_cmd.set_defaults(action=explore_diffusion)
+
+    train_cmd = commands.add_parser("train", help="Train a ddpm diffusion network")
+    train_cmd.set_defaults(action=train_diffusion)
+    
+    args = parser.parse_args()
+    if not hasattr(args, "action"):
+        parser.print_help()
+        return 1
+
+    args.action(args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -1,5 +1,8 @@
-from d2l import torch as d2l
+import argparse
+import sys
+
 import torch
+from d2l import torch as d2l
 import matplotlib.pyplot as plt
 
 import torch
@@ -39,7 +42,7 @@ def fmnist():
 
 def images():
     tiny_image_dataset = torchvision.datasets.ImageFolder(
-        root= "./D2L/images/image_data_folder",
+        root= "./data/d2l-images/image_data_folder",
         transform=transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor()
@@ -87,4 +90,22 @@ def explore_d2l(args):
             print(f"Unrecognized dataset: {args.dataset}")
         return
 
-    pass
+def main(args):
+    parser = argparse.ArgumentParser(description="Dive Into Deep Learning")
+    commands = parser.add_subparsers(dest="cmd")
+
+    explore_cmd = commands.add_parser("explore", help="Explore d2l data")
+    explore_cmd.add_argument("--dataset", "-ds", required=False)
+    explore_cmd.set_defaults(action=explore_d2l)
+    
+    args = parser.parse_args()
+    if not hasattr(args, "action"):
+        parser.print_help()
+        return 1
+
+    args.action(args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

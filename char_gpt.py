@@ -1,4 +1,7 @@
+import argparse
 import logging
+import sys
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -252,3 +255,26 @@ def train_char_gpt(device: torch.device, args):
     # Generate
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
     print(decode(model.generate(context, block_size, max_new_tokens=500)[0].tolist()))
+
+def main(args):
+    parser = argparse.ArgumentParser(description="Character-level GPT")
+    models = parser.add_subparsers(dest="model")
+
+    train_parser = models.add_parser("train", help="Train a Character-level GPT")
+    train_parser.set_defaults(action=train_char_gpt)
+    
+    args = parser.parse_args()
+    if not hasattr(args, "action"):
+        parser.print_help()
+        return 1
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logging.info(f'Using device {device}')
+
+    args.action(device, args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

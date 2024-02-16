@@ -1,6 +1,8 @@
+import argparse
 import glob
 import logging
 from pathlib import Path
+import sys
 
 from d2l import torch as d2l
 from PIL import Image
@@ -161,3 +163,30 @@ def lenet_predict(device, args):
             output = model(tensor_img).cpu()
             predicted = torch.argmax(output)
             print(f"{filename}: {predicted}")
+
+def main(args):
+    parser = argparse.ArgumentParser(description="LeNet")
+    models = parser.add_subparsers(dest="model_type")
+
+    train_parser = models.add_parser("train", help="Train a LeNet")
+    train_parser.add_argument("--epochs", "-e", metavar="INPUT", help="Number of epochs", type=int, default=30)
+    train_parser.set_defaults(action=train_lenet)
+
+    predict_parser = models.add_parser("predict", help="Predict with LeNet")
+    predict_parser.add_argument("--input", "-i", metavar="INPUT", help="Input directory", required=True)
+    predict_parser.set_defaults(action=lenet_predict)
+
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logging.info(f'Using device {device}')
+
+    if not hasattr(args, "action"):
+        parser.print_help()
+        return 1
+    
+    args.action(device, args)
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

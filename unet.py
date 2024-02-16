@@ -1,8 +1,12 @@
+import argparse
 import logging
 import numpy as np
 import os
+import sys
+
 from pathlib import Path
 from PIL import Image
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,7 +17,7 @@ from tqdm import tqdm
 import wandb
 
 
-from UNet.utils import (
+from unet_utils import (
     BasicDataset,
     CarvanaDataset,
     dice_coeff,
@@ -424,3 +428,34 @@ def unet_predict(device, args):
         if args.display:
             logging.info(f"Displaying results for {filename}, close to continue...")
             plot_img_and_mask(img, mask)
+
+def main(args):
+    parser = argparse.ArgumentParser(description="UNet")
+    models = parser.add_subparsers(dest="model")
+    
+    train_parser = models.add_parser("train", help="Train a UNet")
+    train_parser.set_defaults(action=train_unet)
+
+    predict_parser = models.add_parser("predict", help="Predict with UNet")
+    predict_parser.add_argument("--model_path", "-m", metavar="FILE", help="Path to model", required=True)
+    predict_parser.add_argument("--input", "-i", metavar="INPUT", nargs="+", help="Input files", required=True)
+    predict_parser.add_argument("--output", "-o", metavar="OUTPUT", nargs='+', help="Output files")
+    predict_parser.add_argument("--display", "-d", action="store_true", help="Display images")
+    predict_parser.add_argument('--no-save', '-n', action='store_true', help='Do not save intermediate outputs')
+    predict_parser.set_defaults(action=unet_predict)
+    
+    args = parser.parse_args()
+    if not hasattr(args, "action"):
+        parser.print_help()
+        return 1
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logging.info(f'Using device {device}')
+
+    args.action(device, args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
