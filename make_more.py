@@ -2,6 +2,7 @@ import argparse
 import sys
 
 import torch
+import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
 
@@ -49,6 +50,7 @@ def explore_make_more(args):
                 break
         print(''.join(out))
 
+
 def evaluate_make_more(args):
     P, N, stoi, itos, words = make_model()
     g = torch.Generator().manual_seed(2147483647)
@@ -72,6 +74,63 @@ def evaluate_make_more(args):
     print(f'{normalized_log_likelihood=}')
 
 
+def make_training_set():
+    xs, ys = [], []
+    words = open('data/names.txt', 'r').read().splitlines()
+    chars = sorted(list(set(''.join(words))))
+    stoi = {s:i+1 for i,s in enumerate(chars)}
+    stoi['.'] = 0
+    itos = {i:s for s,i in stoi.items()}
+
+    for w in words[:1]:
+        chs = ['.'] + list(w) + ['.']
+        for ch1, ch2 in zip(chs, chs[1:]):
+            ix1 = stoi[ch1]
+            ix2 = stoi[ch2]
+            xs.append(ix1)
+            ys.append(ix2)
+
+    xs = torch.tensor(xs)
+    ys = torch.tensor(ys)
+    return itos, xs, ys
+
+
+def train_make_more(args):
+    itos, xs, ys = make_training_set()
+
+    # Randomly initialize 27 neurons' weights using the Gaussian (Normal) distribution
+    g = torch.Generator().manual_seed(2147483647)
+    W = torch.randn((27, 27), generator=g)
+
+    # Forward pass
+    x_encoded = F.one_hot(xs, num_classes=27).float()
+    # Hidden layer
+    logits = x_encoded @ W
+
+    # Softmax
+    counts = logits.exp()
+    probs = counts / counts.sum(1, keepdim=True)
+
+    nlls = torch.zeros(5) # Negative log-likelihoods
+    for i in range(5):
+        x = xs[i].item() # Input character index
+        y = ys[i].item() # Label character index
+        print("--------")
+        print(f"Bigram example {i+1}: {itos[x]}{itos[y]} (indexes {x},{y})")
+        print("Input to the neural net: ", x)
+        print("Output probabilities from the neural net: ", probs[i])
+        print("Label (actual next character): ", y)
+        p = probs[i, y]
+        print("Probability assigned by the net to the the correct character: ", p.item())
+        logp = torch.log(p)
+        print("Log likelihood: ", logp.item())
+        nll = -logp
+        print("Negative log likelihood: ", nll.item())
+        nlls[i] = nll
+
+    print("========")
+    print("Average negative log likelihood: ", nlls.mean().item())
+
 
 def main(args):
     parser = argparse.ArgumentParser(description="Explore data")
@@ -82,6 +141,9 @@ def main(args):
 
     evaluate_cmd = commands.add_parser("eval", help="Evaluate MakeMore data")
     evaluate_cmd.set_defaults(action=evaluate_make_more)
+
+    train_cmd = commands.add_parser("train", help="Train MakeMore")
+    train_cmd.set_defaults(action=train_make_more)
     
     args = parser.parse_args()
     if not hasattr(args, "action"):
