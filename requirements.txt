@@ -1,4 +1,3 @@
-d2l
 matplotlib
 numpy
 Pillow
