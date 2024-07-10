@@ -74,7 +74,7 @@ def evaluate_make_more(args):
     print(f'{normalized_log_likelihood=}')
 
 
-def make_training_set():
+def create_dataset():
     xs, ys = [], []
     words = open('data/names.txt', 'r').read().splitlines()
     chars = sorted(list(set(''.join(words))))
@@ -82,7 +82,7 @@ def make_training_set():
     stoi['.'] = 0
     itos = {i:s for s,i in stoi.items()}
 
-    for w in words[:1]:
+    for w in words:
         chs = ['.'] + list(w) + ['.']
         for ch1, ch2 in zip(chs, chs[1:]):
             ix1 = stoi[ch1]
@@ -92,44 +92,50 @@ def make_training_set():
 
     xs = torch.tensor(xs)
     ys = torch.tensor(ys)
-    return itos, xs, ys
+    num = xs.nelement()
+    return num, itos, xs, ys
 
 
 def train_make_more(args):
-    itos, xs, ys = make_training_set()
+    num, itos, xs, ys = create_dataset()
+    print(f"{num} examples")
 
     # Randomly initialize 27 neurons' weights using the Gaussian (Normal) distribution
     g = torch.Generator().manual_seed(2147483647)
-    W = torch.randn((27, 27), generator=g)
+    W = torch.randn((27, 27), generator=g, requires_grad=True)
 
-    # Forward pass
-    x_encoded = F.one_hot(xs, num_classes=27).float()
-    # Hidden layer
-    logits = x_encoded @ W
+    # Gradient descent
+    for k in range(100):
+        # Forward pass
+        x_encoded = F.one_hot(xs, num_classes=27).float()
+        logits = x_encoded @ W # Hidden layer
+        counts = logits.exp() # Softmax
+        probs = counts / counts.sum(1, keepdim=True)
+        loss = -probs[torch.arange(num), ys].log().mean()
+        loss += (0.01 * (W**2).mean()) # Regularization
+        print(f"Loss: {loss.item():.4f}")
 
-    # Softmax
-    counts = logits.exp()
-    probs = counts / counts.sum(1, keepdim=True)
+        # Backward pass
+        W.grad = None # Set gradient to zero
+        loss.backward()
+        W.data += -50 * W.grad # Update weights
 
-    nlls = torch.zeros(5) # Negative log-likelihoods
-    for i in range(5):
-        x = xs[i].item() # Input character index
-        y = ys[i].item() # Label character index
-        print("--------")
-        print(f"Bigram example {i+1}: {itos[x]}{itos[y]} (indexes {x},{y})")
-        print("Input to the neural net: ", x)
-        print("Output probabilities from the neural net: ", probs[i])
-        print("Label (actual next character): ", y)
-        p = probs[i, y]
-        print("Probability assigned by the net to the the correct character: ", p.item())
-        logp = torch.log(p)
-        print("Log likelihood: ", logp.item())
-        nll = -logp
-        print("Negative log likelihood: ", nll.item())
-        nlls[i] = nll
+    # Sample from the neural net
+    g = torch.Generator().manual_seed(2147483647)
+    for _ in range(5):
+        out = []
+        ix = 0
+        while True:
+            x_encoded = F.one_hot(torch.tensor([ix]), num_classes=27).float()
+            logits = x_encoded @ W # Predict log-counts
+            counts = logits.exp() # Convert to counts
+            p = counts / counts.sum(1, keepdim=True)
+            ix = torch.multinomial(p, num_samples=1, replacement=True, generator=g).item()
+            out.append(itos[ix])
+            if ix == 0:
+                break
+        print(''.join(out))
 
-    print("========")
-    print("Average negative log likelihood: ", nlls.mean().item())
 
 
 def main(args):
