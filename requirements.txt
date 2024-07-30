@@ -1,8 +1,12 @@
 matplotlib
 numpy
 Pillow
+regex
 scipy
+sentencepiece
+tiktoken
 torch
 torchvision
 tqdm
+unicodedata2
 wandb
